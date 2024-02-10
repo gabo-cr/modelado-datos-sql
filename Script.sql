@@ -110,3 +110,29 @@ insert into prestamo (socio_id, pelicula_id, fecha_prestamo, fecha_devolucion) v
 insert into prestamo (socio_id, pelicula_id, fecha_prestamo, fecha_devolucion) values(3, 7, '2024-01-24', '2024-01-28');
 insert into prestamo (socio_id, pelicula_id, fecha_prestamo, fecha_devolucion) values(3, 8, '2024-02-05', null);
 
+
+/*
+ * Query 1
+ * Películas disponibles para alquilar en este momento (no están prestadas).
+ * Muestra el título de la película y el número de copias disponibles.
+ * */
+-- Opción 1
+select pe.titulo, (pe.cantidad - count(pr.*)) as disponible
+from (select * from prestamo pre where pre.fecha_devolucion is null) pr
+right join pelicula pe on pe.id = pr.pelicula_id 
+group by pe.id
+having pe.cantidad > count(*)
+order by pe.id;
+
+-- Opción 2
+select pe.titulo, (pe.cantidad - (select count(*) from prestamo pr where pr.pelicula_id = pe.id and pr.fecha_devolucion is null)) as disponible
+from pelicula pe
+where pe.cantidad > 
+(select count(*) from prestamo pr where pr.pelicula_id = pe.id and pr.fecha_devolucion is null);
+
+
+/*
+ * Query 2
+ * Cuál es el género favorito de cada uno de mis socios.
+ * Muestra el número y el nombre del socio, y el género favorito.
+ * */
