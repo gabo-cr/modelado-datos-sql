@@ -117,7 +117,7 @@ insert into prestamo (socio_id, pelicula_id, fecha_prestamo, fecha_devolucion) v
  * Muestra el título de la película y el número de copias disponibles.
  * */
 -- Opción 1
-select pe.titulo, (pe.cantidad - count(pr.*)) as disponible
+select pe.titulo, (pe.cantidad - count(pr.*)) as copias_disponibles
 from (select * from prestamo pre where pre.fecha_devolucion is null) pr
 right join pelicula pe on pe.id = pr.pelicula_id 
 group by pe.id
@@ -125,7 +125,7 @@ having pe.cantidad > count(*)
 order by pe.id;
 
 -- Opción 2
-select pe.titulo, (pe.cantidad - (select count(*) from prestamo pr where pr.pelicula_id = pe.id and pr.fecha_devolucion is null)) as disponible
+select pe.titulo, (pe.cantidad - (select count(*) from prestamo pr where pr.pelicula_id = pe.id and pr.fecha_devolucion is null)) as copias_disponibles
 from pelicula pe
 where pe.cantidad > 
 (select count(*) from prestamo pr where pr.pelicula_id = pe.id and pr.fecha_devolucion is null);
@@ -136,3 +136,26 @@ where pe.cantidad >
  * Cuál es el género favorito de cada uno de mis socios.
  * Muestra el número y el nombre del socio, y el género favorito.
  * */
+-- Opción 1: muestra todos los géneros vistos por cada socio, junto con la cantidad de visualizaciones de ese género.
+select s.id as numero_socio, s.nombre, s.apellidos, g.nombre as genero, count(g.*) as genero_vistas
+from socio s
+inner join prestamo pr on pr.socio_id = s.id
+inner join pelicula pe on pe.id = pr.pelicula_id
+inner join genero g on g.id = pe.genero_id
+group by s.id, s.nombre, g.nombre
+order by s.id, count(g.*) desc;
+
+--Opción 2: muestra únicamente el género más visto por cada socio.
+with ranking as (
+	select s.id as numero_socio, s.nombre, s.apellidos, g.nombre as genero_favorito, 
+		count(g.*) as genero_vistas, 
+		row_number() over (partition by s.id order by count(pr.pelicula_id) desc) as genero_ranking
+	from socio s
+	inner join prestamo pr on pr.socio_id = s.id
+	inner join pelicula pe on pe.id = pr.pelicula_id
+	inner join genero g on g.id = pe.genero_id
+	group by s.id, s.nombre, g.nombre
+)
+select numero_socio, nombre, apellidos, genero_favorito
+from ranking
+where genero_ranking = 1;
